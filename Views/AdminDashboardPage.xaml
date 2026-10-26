@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MkalInventoryApp.Views.AdminDashboardPage"
+             BackgroundColor="{StaticResource BackgroundGray}"
+             NavigationPage.HasNavigationBar="False"
+             Title="Admin console">
+
+    <ContentPage.Resources>
+        <!-- Card used by the overview "needs attention" list -->
+        <DataTemplate x:Key="ToolCard">
+            <Border StyleClass="card" Margin="0,0,0,8">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnToolTapped" />
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                    <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource DarkText}" />
+                    <Border Grid.Column="1" BackgroundColor="{Binding StatusColor}" StrokeThickness="0" Padding="10,3" StrokeShape="RoundRectangle 10">
+                        <Label Text="{Binding Status}" TextColor="White" FontSize="12" FontAttributes="Bold" />
+                    </Border>
+                    <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding ItemId}" TextColor="{StaticResource PrimaryOrange}" FontAttributes="Bold" FontSize="13" />
+                    <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Description}" StyleClass="muted" />
+                    <Label Grid.Row="3" Text="{Binding CalibrationText}" TextColor="{Binding CalibrationColor}" FontSize="12" />
+                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding CustodyText}" StyleClass="muted" HorizontalTextAlignment="End" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Table row for the Tools tab: ItemId | Name | Description | Status | Next Calibration Due | Custody / Borrower -->
+        <DataTemplate x:Key="ToolRow">
+            <Border StyleClass="row">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnToolTapped" />
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="90,170,230,130,160,200" ColumnSpacing="8">
+                    <Label Text="{Binding ItemId}" StyleClass="cell" TextColor="{StaticResource PrimaryOrange}" FontAttributes="Bold" />
+                    <Label Grid.Column="1" Text="{Binding Name}" StyleClass="cell" FontAttributes="Bold" />
+                    <Label Grid.Column="2" Text="{Binding Description}" StyleClass="cell" TextColor="{StaticResource MutedText}" />
+                    <Border Grid.Column="3" BackgroundColor="{Binding StatusColor}" StrokeThickness="0" Padding="10,3" HorizontalOptions="Start" VerticalOptions="Center" StrokeShape="RoundRectangle 10">
+                        <Label Text="{Binding Status}" TextColor="White" FontSize="12" FontAttributes="Bold" />
+                    </Border>
+                    <Label Grid.Column="4" Text="{Binding CalibrationShort}" StyleClass="cell" TextColor="{Binding CalibrationColor}" />
+                    <Label Grid.Column="5" Text="{Binding CustodyShort}" StyleClass="cell" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="AuditRow">
+            <Border StyleClass="card" Padding="10" Margin="0,0,0,6">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                    <Label Text="{Binding Headline}" FontAttributes="Bold" FontSize="14" TextColor="{StaticResource DarkText}" />
+                    <Label Grid.Column="1" Text="{Binding TimeText}" StyleClass="muted" />
+                    <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Details}" FontSize="13" TextColor="{StaticResource DarkText}" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding ByText}" StyleClass="muted" VerticalOptions="End" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+
+        <!-- Header and global actions (buttons scroll sideways on narrow screens) -->
+        <Border Grid.Row="0" BackgroundColor="{StaticResource InkDark}" StrokeThickness="0" Padding="16,12">
+            <VerticalStackLayout Spacing="8">
+                <VerticalStackLayout>
+                    <Label Text="MKAL operations console" FontSize="18" FontAttributes="Bold" TextColor="White" />
+                    <Label x:Name="lblWho" FontSize="12" TextColor="#AEB6BF" />
+                </VerticalStackLayout>
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="Scan overdue tools" StyleClass="ghost" Clicked="OnScanClicked" />
+                        <Button Text="Export audit report (CSV)" StyleClass="ghost" Clicked="OnExportReportClicked" />
+                        <Button Text="Refresh" StyleClass="ghost" Clicked="OnRefreshClicked" />
+                        <Button Text="Log out" StyleClass="ghost" Clicked="OnLogoutClicked" />
+                    </HorizontalStackLayout>
+                </ScrollView>
+            </VerticalStackLayout>
+        </Border>
+
+        <!-- Feedback banner -->
+        <Border x:Name="bnr" Grid.Row="1" IsVisible="False" StrokeThickness="0" Padding="16,10">
+            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnBannerTapped" /></Border.GestureRecognizers>
+            <Label x:Name="lblBanner" TextColor="White" FontSize="14" />
+        </Border>
+
+        <!-- Section tabs -->
+        <ScrollView Grid.Row="2" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" BackgroundColor="White">
+            <HorizontalStackLayout Padding="12,8" Spacing="6">
+                <Button x:Name="tab0" Text="Overview" StyleClass="tab" Clicked="OnTabClicked" />
+                <Button x:Name="tab1" Text="Tools" StyleClass="tab" Clicked="OnTabClicked" />
+                <Button x:Name="tab2" Text="Reservations" StyleClass="tab" Clicked="OnTabClicked" />
+                <Button x:Name="tab3" Text="Users" StyleClass="tab" Clicked="OnTabClicked" />
+                <Button x:Name="tab4" Text="Audit ledger" StyleClass="tab" Clicked="OnTabClicked" />
+            </HorizontalStackLayout>
+        </ScrollView>
+
+        <ScrollView Grid.Row="3">
+            <VerticalStackLayout Padding="16" Spacing="14" MaximumWidthRequest="1100" HorizontalOptions="Fill">
+
+                <!-- ============ OVERVIEW ============ -->
+                <VerticalStackLayout x:Name="pnl0" Spacing="12">
+                    <Label Text="Workshop at a glance" StyleClass="title" />
+
+                    <Grid ColumnDefinitions="*,*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                        <Border Grid.Row="0" Grid.Column="0" StyleClass="card" Padding="12">
+                            <VerticalStackLayout><Label x:Name="statTotal" Text="0" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource DarkText}" /><Label Text="Total tools" StyleClass="muted" /></VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="1" StyleClass="card" Padding="12">
+                            <VerticalStackLayout><Label x:Name="statAvailable" Text="0" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource OkGreen}" /><Label Text="Available" StyleClass="muted" /></VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="2" StyleClass="card" Padding="12">
+                            <VerticalStackLayout><Label x:Name="statBorrowed" Text="0" FontSize="26" FontAttributes="Bold" TextColor="#1565C0" /><Label Text="Checked out" StyleClass="muted" /></VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="0" Grid.Column="3" StyleClass="card" Padding="12">
+                            <VerticalStackLayout><Label x:Name="statOverdue" Text="0" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource DangerRed}" /><Label Text="Overdue" StyleClass="muted" /></VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="0" StyleClass="card" Padding="12">
+                            <VerticalStackLayout><Label x:Name="statQuarantine" Text="0" FontSize="26" FontAttributes="Bold" TextColor="#EF6C00" /><Label Text="Maintenance or damaged" StyleClass="muted" /></VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="1" StyleClass="card" Padding="12">
+                            <VerticalStackLayout><Label x:Name="statLost" Text="0" FontSize="26" FontAttributes="Bold" TextColor="#424242" /><Label Text="Lost" StyleClass="muted" /></VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="2" StyleClass="card" Padding="12">
+                            <VerticalStackLayout><Label x:Name="statCalibration" Text="0" FontSize="26" FontAttributes="Bold" TextColor="#EF6C00" /><Label Text="Calibration due in 30 days" StyleClass="muted" /></VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Row="1" Grid.Column="3" StyleClass="card" Padding="12">
+                            <VerticalStackLayout><Label x:Name="statReservations" Text="0" FontSize="26" FontAttributes="Bold" TextColor="{StaticResource DarkText}" /><Label Text="Active reservations" StyleClass="muted" /></VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <Label Text="Needs attention" StyleClass="section" Margin="0,6,0,0" />
+                    <Label Text="Tap a tool to open it in the editor." StyleClass="muted" />
+                    <VerticalStackLayout x:Name="lstAttention" BindableLayout.ItemTemplate="{StaticResource ToolCard}" />
+                    <Label x:Name="lblAttentionEmpty" Text="Nothing needs attention. Every tool is in good standing." StyleClass="muted" IsVisible="False" />
+                </VerticalStackLayout>
+
+                <!-- ============ TOOLS ============ -->
+                <VerticalStackLayout x:Name="pnl1" Spacing="12" IsVisible="False">
+                    <Label Text="Tool inventory" StyleClass="title" />
+
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="8">
+                            <SearchBar x:Name="sbTools" Placeholder="Search by ID, name, serial, category or borrower" TextChanged="OnSearchTextChanged" />
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                <Picker x:Name="pckFilterCategory" Grid.Column="0" Title="Category" SelectedIndexChanged="OnFilterChanged" />
+                                <Picker x:Name="pckFilterStatus" Grid.Column="1" Title="Status" SelectedIndexChanged="OnFilterChanged" />
+                                <Picker x:Name="pckSort" Grid.Column="2" Title="Sort by" SelectedIndexChanged="OnFilterChanged" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="Tap a row to edit that tool." StyleClass="muted" />
+                    <ScrollView Orientation="Horizontal">
+                        <VerticalStackLayout WidthRequest="1050" Spacing="4">
+                            <Border StyleClass="row" BackgroundColor="{StaticResource LightOrange}">
+                                <Grid ColumnDefinitions="90,170,230,130,160,200" ColumnSpacing="8">
+                                    <Label Text="Item ID" StyleClass="th" />
+                                    <Label Grid.Column="1" Text="Name" StyleClass="th" />
+                                    <Label Grid.Column="2" Text="Description" StyleClass="th" />
+                                    <Label Grid.Column="3" Text="Status" StyleClass="th" />
+                                    <Label Grid.Column="4" Text="Next calibration due" StyleClass="th" />
+                                    <Label Grid.Column="5" Text="Custody / borrower" StyleClass="th" />
+                                </Grid>
+                            </Border>
+                            <VerticalStackLayout x:Name="lstTools" Spacing="4" BindableLayout.ItemTemplate="{StaticResource ToolRow}" />
+                        </VerticalStackLayout>
+                    </ScrollView>
+                    <Label x:Name="lblToolsEmpty" Text="No tools match these filters. Clear the search or register a new tool below." StyleClass="muted" IsVisible="False" />
+
+                    <!-- Register / edit form -->
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="10" MaximumWidthRequest="560" HorizontalOptions="Start">
+                            <Label x:Name="lblFormTitle" Text="Register a tool" StyleClass="section" />
+
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Item ID" StyleClass="muted" />
+                                <Entry x:Name="txtId" Placeholder="ISO-009" MaxLength="20" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Tool name" StyleClass="muted" />
+                                <Entry x:Name="txtName" Placeholder="Insulation tester" MaxLength="60" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Description" StyleClass="muted" />
+                                <Entry x:Name="txtDesc" Placeholder="What it is and what it is used for" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Category" StyleClass="muted" />
+                                <Picker x:Name="pckCategory" Title="Choose a category" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Serial number" StyleClass="muted" />
+                                <Entry x:Name="txtSerial" Placeholder="Optional" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Calibration due" StyleClass="muted" />
+                                <DatePicker x:Name="dpCalibration" />
+                            </VerticalStackLayout>
+                            <HorizontalStackLayout Spacing="10">
+                                <Switch x:Name="swCalibration" IsToggled="True" VerticalOptions="Center" />
+                                <Label Text="This tool needs periodic calibration" VerticalOptions="Center" TextColor="{StaticResource DarkText}" />
+                            </HorizontalStackLayout>
+
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                                <Button x:Name="btnSave" Grid.Row="0" Grid.Column="0" Text="Add tool" Clicked="OnSaveToolClicked" />
+                                <Button Grid.Row="0" Grid.Column="1" Text="Clear form" StyleClass="secondary" Clicked="OnClearFormClicked" />
+                                <Button Grid.Row="1" Grid.Column="0" Text="Lock for calibration" StyleClass="secondary" Clicked="OnLockClicked" />
+                                <Button Grid.Row="1" Grid.Column="1" Text="Release to available" StyleClass="secondary" Clicked="OnReleaseClicked" />
+                                <Button Grid.Row="2" Grid.Column="0" Text="Delete tool" StyleClass="danger" Clicked="OnDeleteClicked" />
+                                <Button Grid.Row="2" Grid.Column="1" Text="Export inventory (CSV)" StyleClass="secondary" Clicked="OnExportInventoryClicked" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- History of the selected tool -->
+                    <VerticalStackLayout x:Name="pnlHistory" IsVisible="False" Spacing="8">
+                        <Label x:Name="lblHistoryTitle" Text="History" StyleClass="section" />
+                        <VerticalStackLayout x:Name="lstHistory" BindableLayout.ItemTemplate="{StaticResource AuditRow}" />
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <!-- ============ RESERVATIONS ============ -->
+                <VerticalStackLayout x:Name="pnl2" Spacing="10" IsVisible="False">
+                    <Label Text="Reservations" StyleClass="title" />
+                    <Label Text="Active bookings across all job sites. Each tool can be booked by one person per day." StyleClass="muted" />
+                    <VerticalStackLayout x:Name="lstReservations">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Border StyleClass="card" Margin="0,0,0,8">
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                                        <Label Text="{Binding TitleText}" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource DarkText}" />
+                                        <Label Grid.Column="1" Text="{Binding DateText}" TextColor="{StaticResource PrimaryOrange}" FontAttributes="Bold" />
+                                        <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding OwnerText}" StyleClass="muted" />
+                                        <Button Grid.Row="2" Grid.ColumnSpan="2" Text="Cancel reservation" StyleClass="secondary small" HorizontalOptions="Start" Margin="0,8,0,0" Clicked="OnCancelReservationClicked" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Label x:Name="lblReservationsEmpty" Text="No active reservations." StyleClass="muted" IsVisible="False" />
+                </VerticalStackLayout>
+
+                <!-- ============ USERS ============ -->
+                <VerticalStackLayout x:Name="pnl3" Spacing="10" IsVisible="False">
+                    <Label Text="Users and accountability" StyleClass="title" />
+                    <VerticalStackLayout x:Name="lstUsers">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Border StyleClass="card" Margin="0,0,0,8">
+                                    <VerticalStackLayout Spacing="3">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Text="{Binding FullName}" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource DarkText}" />
+                                            <Label Grid.Column="1" Text="{Binding StatusText}" StyleClass="muted" />
+                                        </Grid>
+                                        <Label Text="{Binding Username}" TextColor="{StaticResource PrimaryOrange}" FontAttributes="Bold" FontSize="13" />
+                                        <Label Text="{Binding TitleText}" StyleClass="muted" />
+                                        <Label Text="{Binding Initials, StringFormat='Sign-off initials: {0}'}" StyleClass="muted" />
+                                        <Label Text="{Binding RiskText}" TextColor="{Binding RiskColor}" FontSize="13" FontAttributes="Bold" />
+                                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8" Margin="0,8,0,0">
+                                            <Button Grid.Row="0" Grid.Column="0" Text="Reset password" StyleClass="secondary small" Clicked="OnResetPasswordClicked" />
+                                            <Button Grid.Row="0" Grid.Column="1" Text="Reset PIN" StyleClass="secondary small" Clicked="OnSetPinClicked" />
+                                            <Button Grid.Row="1" Grid.Column="0" Text="Clear risk score" StyleClass="secondary small" Clicked="OnResetRiskClicked" />
+                                            <Button Grid.Row="1" Grid.Column="1" Text="{Binding ActiveActionText}" StyleClass="secondary small" Clicked="OnToggleActiveClicked" />
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="10" MaximumWidthRequest="560" HorizontalOptions="Start">
+                            <Label Text="Add a user" StyleClass="section" />
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Username" StyleClass="muted" />
+                                <Entry x:Name="txtNewUsername" Placeholder="juan.cruz" Keyboard="Plain" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Full name" StyleClass="muted" />
+                                <Entry x:Name="txtNewFullName" Placeholder="Juan Dela Cruz" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Role" StyleClass="muted" />
+                                <Picker x:Name="pckNewRole" Title="Choose a role" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Job title" StyleClass="muted" />
+                                <Picker x:Name="pckNewTitle" Title="Choose a job title" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Sign-off initials (2 to 4 letters, leave empty to use the name's initials)" StyleClass="muted" />
+                                <Entry x:Name="txtNewInitials" Placeholder="JDC" MaxLength="4" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Password (6 or more characters)" StyleClass="muted" />
+                                <Entry x:Name="txtNewPassword" IsPassword="True" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Handover PIN (4 digits)" StyleClass="muted" />
+                                <Entry x:Name="txtNewPin" IsPassword="True" Keyboard="Numeric" MaxLength="4" />
+                            </VerticalStackLayout>
+                            <Button Text="Create user" Clicked="OnAddUserClicked" HorizontalOptions="Start" />
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- ============ AUDIT ============ -->
+                <VerticalStackLayout x:Name="pnl4" Spacing="10" IsVisible="False">
+                    <Label Text="Audit ledger" StyleClass="title" />
+                    <Label Text="Every checkout, return, lockout and admin change is recorded. Entries are hash-chained, so any edit or deletion is detected." StyleClass="muted" />
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="8">
+                            <SearchBar x:Name="sbAudit" Placeholder="Search by tool, person, action or detail" TextChanged="OnAuditSearchChanged" />
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                                <Button Grid.Row="0" Grid.Column="0" Text="Export custody report (CSV)" Clicked="OnExportReportClicked" />
+                                <Button Grid.Row="0" Grid.Column="1" Text="Export full ledger (CSV)" StyleClass="secondary" Clicked="OnExportLedgerClicked" />
+                                <Button Grid.Row="1" Grid.Column="0" Text="Verify ledger integrity" StyleClass="secondary" Clicked="OnVerifyLedgerClicked" />
+                            </Grid>
+                            <Label x:Name="lblLedger" FontSize="13" IsVisible="False" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <VerticalStackLayout x:Name="lstAudit" BindableLayout.ItemTemplate="{StaticResource AuditRow}" />
+                    <Label x:Name="lblAuditEmpty" Text="No ledger entries match this search." StyleClass="muted" IsVisible="False" />
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

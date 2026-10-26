@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MkalInventoryApp.Views.LoginPage"
+             BackgroundColor="{StaticResource InkDark}"
+             NavigationPage.HasNavigationBar="False">
+
+    <ScrollView>
+        <VerticalStackLayout VerticalOptions="Center" HorizontalOptions="Center" Padding="24" Spacing="18"
+                             WidthRequest="400" MaximumWidthRequest="400">
+
+            <VerticalStackLayout Spacing="2" HorizontalOptions="Center">
+                <Label Text="MKAL Electric" FontSize="30" FontAttributes="Bold" TextColor="White" HorizontalOptions="Center" />
+                <Label Text="Tool, calibration and custody manager" FontSize="13" TextColor="#AEB6BF" HorizontalOptions="Center" />
+            </VerticalStackLayout>
+
+            <Border StyleClass="card" Padding="20">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Sign in" StyleClass="title" />
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Username" StyleClass="muted" />
+                        <Entry x:Name="txtUsername" Placeholder="Username" Keyboard="Plain" ReturnType="Next" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Password" StyleClass="muted" />
+                        <Entry x:Name="txtPassword" Placeholder="Password" IsPassword="True" ReturnType="Go" Completed="OnLoginClicked" />
+                    </VerticalStackLayout>
+
+                    <Label x:Name="lblError" IsVisible="False" TextColor="{StaticResource DangerRed}" FontSize="13" />
+
+                    <Button x:Name="btnLogin" Text="Sign in" Clicked="OnLoginClicked" Margin="0,4,0,0" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="Demo accounts: admin / Admin@123 and technician / Tech@123"
+                   FontSize="12" TextColor="#AEB6BF" HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

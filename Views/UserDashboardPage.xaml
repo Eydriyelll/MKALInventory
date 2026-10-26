@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MkalInventoryApp.Views.UserDashboardPage"
+             BackgroundColor="{StaticResource BackgroundGray}"
+             NavigationPage.HasNavigationBar="False"
+             Title="Field custody workspace">
+
+    <ContentPage.Resources>
+        <!-- Card for "tools in my custody". Tapping starts the return. -->
+        <DataTemplate x:Key="ToolCard">
+            <Border StyleClass="card" Margin="0,0,0,8">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnToolTapped" />
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                    <Label Text="{Binding Name}" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource DarkText}" />
+                    <Border Grid.Column="1" BackgroundColor="{Binding StatusColor}" StrokeThickness="0" Padding="10,3" StrokeShape="RoundRectangle 10">
+                        <Label Text="{Binding Status}" TextColor="White" FontSize="12" FontAttributes="Bold" />
+                    </Border>
+                    <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding ItemId}" TextColor="{StaticResource PrimaryOrange}" FontAttributes="Bold" FontSize="13" />
+                    <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Description}" StyleClass="muted" />
+                    <Label Grid.Row="3" Text="{Binding CalibrationText}" TextColor="{Binding CalibrationColor}" FontSize="12" />
+                    <Label Grid.Row="3" Grid.Column="1" Text="{Binding CustodyText}" StyleClass="muted" HorizontalTextAlignment="End" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <!-- Equipment grid row: tool code | name | description | operational status -->
+        <DataTemplate x:Key="ToolRow">
+            <Border StyleClass="row">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnToolTapped" />
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="90,170,230,130" ColumnSpacing="8">
+                    <Label Text="{Binding ItemId}" StyleClass="cell" TextColor="{StaticResource PrimaryOrange}" FontAttributes="Bold" />
+                    <Label Grid.Column="1" Text="{Binding Name}" StyleClass="cell" FontAttributes="Bold" />
+                    <Label Grid.Column="2" Text="{Binding Description}" StyleClass="cell" TextColor="{StaticResource MutedText}" />
+                    <Border Grid.Column="3" BackgroundColor="{Binding StatusColor}" StrokeThickness="0" Padding="10,3" HorizontalOptions="Start" VerticalOptions="Center" StrokeShape="RoundRectangle 10">
+                        <Label Text="{Binding Status}" TextColor="White" FontSize="12" FontAttributes="Bold" />
+                    </Border>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+
+        <Border Grid.Row="0" BackgroundColor="{StaticResource InkDark}" StrokeThickness="0" Padding="16,12">
+            <Grid ColumnDefinitions="*,Auto">
+                <VerticalStackLayout>
+                    <Label Text="Field custody workspace" FontSize="18" FontAttributes="Bold" TextColor="White" />
+                    <Label x:Name="lblWho" FontSize="12" TextColor="#AEB6BF" />
+                </VerticalStackLayout>
+                <Button Grid.Column="1" Text="Log out" StyleClass="ghost" Clicked="OnLogoutClicked" VerticalOptions="Center" />
+            </Grid>
+        </Border>
+
+        <Border x:Name="bnr" Grid.Row="1" IsVisible="False" StrokeThickness="0" Padding="16,10">
+            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnBannerTapped" /></Border.GestureRecognizers>
+            <Label x:Name="lblBanner" TextColor="White" FontSize="14" />
+        </Border>
+
+        <ScrollView Grid.Row="2" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" BackgroundColor="White">
+            <HorizontalStackLayout Padding="12,8" Spacing="6">
+                <Button x:Name="tab0" Text="Tools" StyleClass="tab" Clicked="OnTabClicked" />
+                <Button x:Name="tab1" Text="Check out" StyleClass="tab" Clicked="OnTabClicked" />
+                <Button x:Name="tab2" Text="My tools and return" StyleClass="tab" Clicked="OnTabClicked" />
+                <Button x:Name="tab3" Text="Reservations" StyleClass="tab" Clicked="OnTabClicked" />
+                <Button x:Name="tab4" Text="Account" StyleClass="tab" Clicked="OnTabClicked" />
+            </HorizontalStackLayout>
+        </ScrollView>
+
+        <ScrollView Grid.Row="3">
+            <VerticalStackLayout Padding="16" Spacing="14" MaximumWidthRequest="900" HorizontalOptions="Fill">
+
+                <!-- ============ TOOLS ============ -->
+                <VerticalStackLayout x:Name="pnl0" Spacing="10">
+                    <Label Text="Available equipment" StyleClass="title" />
+                    <Label Text="Tap an available tool to start checkout. Tap one of your own tools to return it." StyleClass="muted" />
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="8">
+                            <SearchBar x:Name="sbTools" Placeholder="Search by ID, name, category or serial" TextChanged="OnSearchTextChanged" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Picker x:Name="pckFilterCategory" Grid.Column="0" Title="Category" SelectedIndexChanged="OnFilterChanged" />
+                                <Picker x:Name="pckFilterStatus" Grid.Column="1" Title="Status" SelectedIndexChanged="OnFilterChanged" />
+                            </Grid>
+                            <Button Text="Refresh catalog" StyleClass="secondary" Clicked="OnRefreshClicked" HorizontalOptions="Start" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <ScrollView Orientation="Horizontal">
+                        <VerticalStackLayout WidthRequest="680" Spacing="4">
+                            <Border StyleClass="row" BackgroundColor="{StaticResource LightOrange}">
+                                <Grid ColumnDefinitions="90,170,230,130" ColumnSpacing="8">
+                                    <Label Text="Tool code" StyleClass="th" />
+                                    <Label Grid.Column="1" Text="Name" StyleClass="th" />
+                                    <Label Grid.Column="2" Text="Description" StyleClass="th" />
+                                    <Label Grid.Column="3" Text="Status" StyleClass="th" />
+                                </Grid>
+                            </Border>
+                            <VerticalStackLayout x:Name="lstTools" Spacing="4" BindableLayout.ItemTemplate="{StaticResource ToolRow}" />
+                        </VerticalStackLayout>
+                    </ScrollView>
+                    <Label x:Name="lblToolsEmpty" Text="No tools match these filters." StyleClass="muted" IsVisible="False" />
+                </VerticalStackLayout>
+
+                <!-- ============ CHECK OUT ============ -->
+                <VerticalStackLayout x:Name="pnl1" Spacing="10" IsVisible="False">
+                    <Label Text="Check out a tool" StyleClass="title" />
+                    <Label Text="Your PIN and registered initials are both required. Tools with expired calibration cannot be issued." StyleClass="muted" />
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="10" MaximumWidthRequest="560" HorizontalOptions="Start">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Item ID" StyleClass="muted" />
+                                <Entry x:Name="txtBorrowId" Placeholder="ISO-001" MaxLength="20" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Borrower PIN" StyleClass="muted" />
+                                <Entry x:Name="txtPin" Placeholder="****" IsPassword="True" Keyboard="Numeric" MaxLength="4" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Technician sign-off initials" StyleClass="muted" />
+                                <Entry x:Name="txtInitials" Placeholder="Your registered initials" MaxLength="4" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="I will return it by" StyleClass="muted" />
+                                <Picker x:Name="pckReturnWindow" Title="Choose when you will return it" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Signature (optional)" StyleClass="muted" />
+                                <Border Stroke="{StaticResource LineGray}" BackgroundColor="White" HeightRequest="110" StrokeShape="RoundRectangle 8">
+                                    <GraphicsView x:Name="sigCanvas" />
+                                </Border>
+                                <Button Text="Clear signature" StyleClass="secondary small" Clicked="OnClearCanvasClicked" HorizontalOptions="Start" />
+                            </VerticalStackLayout>
+                            <Button Text="Check out / borrow" Clicked="OnBorrowClicked" />
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- ============ MY TOOLS AND RETURN ============ -->
+                <VerticalStackLayout x:Name="pnl2" Spacing="10" IsVisible="False">
+                    <Label Text="Tools in my custody" StyleClass="title" />
+                    <VerticalStackLayout x:Name="lstMine" BindableLayout.ItemTemplate="{StaticResource ToolCard}" />
+                    <Label x:Name="lblMineEmpty" Text="You have no tools checked out." StyleClass="muted" IsVisible="False" />
+
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="10" MaximumWidthRequest="560" HorizontalOptions="Start">
+                            <Label Text="Return and inspection" StyleClass="section" />
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Item ID" StyleClass="muted" />
+                                <Entry x:Name="txtReturnId" Placeholder="Tap one of your tools above" MaxLength="20" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Condition" StyleClass="muted" />
+                                <Picker x:Name="pckCondition" Title="Condition" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Inspection notes (optional)" StyleClass="muted" />
+                                <Entry x:Name="txtNotes" Placeholder="Frayed cord, cracked casing, and so on" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Inspection photo path (optional)" StyleClass="muted" />
+                                <Entry x:Name="txtPhotoPath" IsReadOnly="True" Placeholder="No photo attached" />
+                                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                    <Button Grid.Column="0" Text="Take photo" StyleClass="secondary small" Clicked="OnCapturePhotoClicked" />
+                                    <Button Grid.Column="1" Text="Choose file" StyleClass="secondary small" Clicked="OnPickPhotoClicked" />
+                                    <Button Grid.Column="2" Text="Remove" StyleClass="secondary small" Clicked="OnRemovePhotoClicked" />
+                                </Grid>
+                                <Image x:Name="imgPreview" HeightRequest="140" Aspect="AspectFit" IsVisible="False" HorizontalOptions="Start" />
+                            </VerticalStackLayout>
+                            <Button Text="Check in / return" Clicked="OnReturnClicked" />
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <!-- ============ RESERVATIONS ============ -->
+                <VerticalStackLayout x:Name="pnl3" Spacing="10" IsVisible="False">
+                    <Label Text="Reserve a tool for a project" StyleClass="title" />
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="10" MaximumWidthRequest="560" HorizontalOptions="Start">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Tool" StyleClass="muted" />
+                                <Picker x:Name="pckReserveTool" Title="Choose a tool" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Reserve date" StyleClass="muted" />
+                                <DatePicker x:Name="dpReserve" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Project or job site" StyleClass="muted" />
+                                <Entry x:Name="txtProject" Placeholder="Sta. Rosa warehouse rewiring" />
+                            </VerticalStackLayout>
+                            <Button Text="Reserve for project" Clicked="OnReserveClicked" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="Upcoming reservations" StyleClass="section" Margin="0,6,0,0" />
+                    <VerticalStackLayout x:Name="lstReservations">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Border StyleClass="card" Margin="0,0,0,8">
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8">
+                                        <Label Text="{Binding TitleText}" FontAttributes="Bold" FontSize="15" TextColor="{StaticResource DarkText}" />
+                                        <Label Grid.Column="1" Text="{Binding DateText}" TextColor="{StaticResource PrimaryOrange}" FontAttributes="Bold" />
+                                        <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding OwnerText}" StyleClass="muted" />
+                                        <Button Grid.Row="2" Grid.ColumnSpan="2" Text="Cancel reservation" StyleClass="secondary small"
+                                                HorizontalOptions="Start" Margin="0,8,0,0" IsVisible="{Binding CanCancel}" Clicked="OnCancelReservationClicked" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Label x:Name="lblReservationsEmpty" Text="No upcoming reservations." StyleClass="muted" IsVisible="False" />
+                </VerticalStackLayout>
+
+                <!-- ============ ACCOUNT ============ -->
+                <VerticalStackLayout x:Name="pnl4" Spacing="10" IsVisible="False">
+                    <Label Text="My account" StyleClass="title" />
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="3">
+                            <Label x:Name="lblAccName" StyleClass="section" />
+                            <Label x:Name="lblAccUsername" StyleClass="muted" />
+                            <Label x:Name="lblAccInitials" StyleClass="muted" />
+                            <Label x:Name="lblAccRisk" FontAttributes="Bold" FontSize="14" />
+                            <Label Text="Each overdue tool adds 10 points and each lost tool adds 20. Return tools on time to keep your score low." StyleClass="muted" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border StyleClass="card">
+                        <VerticalStackLayout Spacing="10" MaximumWidthRequest="560" HorizontalOptions="Start">
+                            <Label Text="Change handover PIN" StyleClass="section" />
+                            <Entry x:Name="txtCurPin" Placeholder="Current PIN" IsPassword="True" Keyboard="Numeric" MaxLength="4" />
+                            <Entry x:Name="txtNewPin" Placeholder="New PIN" IsPassword="True" Keyboard="Numeric" MaxLength="4" />
+                            <Entry x:Name="txtConfirmPin" Placeholder="Confirm new PIN" IsPassword="True" Keyboard="Numeric" MaxLength="4" />
+                            <Button Text="Change PIN" Clicked="OnChangePinClicked" HorizontalOptions="Start" />
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>
