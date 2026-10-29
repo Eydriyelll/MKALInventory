@@ -125,7 +125,11 @@
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="I will return it by" StyleClass="muted" />
-                                <Picker x:Name="pckReturnWindow" Title="Choose when you will return it" />
+                                <Picker x:Name="pckReturnWindow" SelectedIndexChanged="OnReturnWindowChanged" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout x:Name="pnlReturnDate" Spacing="4" IsVisible="False">
+                                <Label Text="Return date (the tool is due at the end of that day's shift)" StyleClass="muted" />
+                                <DatePicker x:Name="dpReturnDate" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Signature (optional)" StyleClass="muted" />
@@ -154,7 +158,7 @@
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Condition" StyleClass="muted" />
-                                <Picker x:Name="pckCondition" Title="Condition" />
+                                <Picker x:Name="pckCondition" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Inspection notes (optional)" StyleClass="muted" />
@@ -182,7 +186,7 @@
                         <VerticalStackLayout Spacing="10" MaximumWidthRequest="560" HorizontalOptions="Start">
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Tool" StyleClass="muted" />
-                                <Picker x:Name="pckReserveTool" Title="Choose a tool" />
+                                <Picker x:Name="pckReserveTool" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Reserve date" StyleClass="muted" />

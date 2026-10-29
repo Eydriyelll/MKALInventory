@@ -186,7 +186,7 @@
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Category" StyleClass="muted" />
-                                <Picker x:Name="pckCategory" Title="Choose a category" />
+                                <Picker x:Name="pckCategory" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Serial number" StyleClass="muted" />
@@ -281,11 +281,11 @@
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Role" StyleClass="muted" />
-                                <Picker x:Name="pckNewRole" Title="Choose a role" />
+                                <Picker x:Name="pckNewRole" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Job title" StyleClass="muted" />
-                                <Picker x:Name="pckNewTitle" Title="Choose a job title" />
+                                <Picker x:Name="pckNewTitle" />
                             </VerticalStackLayout>
                             <VerticalStackLayout Spacing="4">
                                 <Label Text="Sign-off initials (2 to 4 letters, leave empty to use the name's initials)" StyleClass="muted" />

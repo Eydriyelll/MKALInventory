@@ -63,12 +63,14 @@
                 <Setter Property="TextColor" Value="{StaticResource DarkText}" />
                 <Setter Property="TitleColor" Value="{StaticResource MutedText}" />
                 <Setter Property="BackgroundColor" Value="{StaticResource InputFill}" />
-                <Setter Property="HeightRequest" Value="44" />
+                <!-- MinimumHeightRequest, not HeightRequest: on Windows the Title sits above the box inside the control,
+                     so a fixed height squeezed the box and hid the chosen option. -->
+                <Setter Property="MinimumHeightRequest" Value="44" />
             </Style>
             <Style TargetType="DatePicker">
                 <Setter Property="TextColor" Value="{StaticResource DarkText}" />
                 <Setter Property="BackgroundColor" Value="{StaticResource InputFill}" />
-                <Setter Property="HeightRequest" Value="44" />
+                <Setter Property="MinimumHeightRequest" Value="44" />
             </Style>
             <Style TargetType="SearchBar">
                 <Setter Property="TextColor" Value="{StaticResource DarkText}" />

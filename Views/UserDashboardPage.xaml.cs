@@ -41,6 +41,9 @@ public partial class UserDashboardPage : ContentPage
         pckFilterStatus.SelectedIndex = 0;
         pckReturnWindow.ItemsSource = ReturnWindow.All;
         pckReturnWindow.SelectedIndex = 0;
+        dpReturnDate.MinimumDate = DateTime.Today.AddDays(1);
+        dpReturnDate.MaximumDate = DateTime.Today.AddDays(Policy.MaxLoanDays);
+        dpReturnDate.Date = DateTime.Today.AddDays(7);
         pckCondition.ItemsSource = ReturnCondition.All;
         pckCondition.SelectedIndex = 0;
         dpReserve.MinimumDate = DateTime.Today;
@@ -159,8 +162,12 @@ public partial class UserDashboardPage : ContentPage
     private async Task LoadReservationsAsync()
     {
         var tools = (await _hub.Inventory.GetItemsAsync()).Where(i => i.Status != ToolStatus.Lost).ToList();
+        var previous = (pckReserveTool.SelectedItem as Item)?.ItemId;
         pckReserveTool.ItemDisplayBinding = new Binding(nameof(Item.DisplayLabel));
         pckReserveTool.ItemsSource = tools;
+        // Keep the box filled: restore the earlier choice, or show the first tool.
+        var keep = tools.FindIndex(t => t.ItemId == previous);
+        pckReserveTool.SelectedIndex = tools.Count == 0 ? -1 : Math.Max(keep, 0);
 
         var res = await _hub.Circulation.GetReservationsAsync(Me);
         BindableLayout.SetItemsSource(lstReservations, res);
@@ -239,6 +246,9 @@ public partial class UserDashboardPage : ContentPage
     // ------------------------------------------------------------------
     // Check out
     // ------------------------------------------------------------------
+    private void OnReturnWindowChanged(object? sender, EventArgs e) =>
+        pnlReturnDate.IsVisible = (pckReturnWindow.SelectedItem as string) == ReturnWindow.CustomDate;
+
     private void OnClearCanvasClicked(object? sender, EventArgs e)
     {
         _signature.Clear();
@@ -248,8 +258,9 @@ public partial class UserDashboardPage : ContentPage
     private async void OnBorrowClicked(object? sender, EventArgs e) => await GuardAsync(async () =>
     {
         var window = pckReturnWindow.SelectedItem as string ?? ReturnWindow.EndOfShift;
+        DateTime? chosenDate = window == ReturnWindow.CustomDate ? dpReturnDate.Date : null;
         var result = await _hub.Circulation.BorrowAsync(Me, txtBorrowId.Text ?? "", txtPin.Text ?? "",
-            txtInitials.Text ?? "", _signature.ToData(), window);
+            txtInitials.Text ?? "", _signature.ToData(), window, chosenDate);
         ShowBanner(result.Message, result.Ok);
 
         txtPin.Text = string.Empty; // never leave a PIN sitting in the field

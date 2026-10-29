@@ -42,7 +42,7 @@ Mac needs Xcode installed and opened once. If a build complains about a missing 
 | Policy 1 Calibration lockout | scan, checkout and return all lock expired tools; Release refuses until the date is renewed |
 | Policy 2 Quarantine | Damaged and Needs Maintenance block reissue until an admin releases the tool |
 | Policy 3 Custody sign-off | no tool becomes Borrowed without PIN and initials |
-| Policy 4 Shift accountability | return window (end of shift, tomorrow, 3 days); overdue sets status and adds +10 risk once per loan |
+| Policy 4 Shift accountability | return window (end of shift, tomorrow, 3 days, or any calendar date up to 90 days away); overdue sets status and adds +10 risk once per loan |
 | Policy 5 Single borrower | only the registered borrower can return it |
 | Output 1 Admin console | Overview, Tools table (ItemId, Name, Description, Status, Next Calibration Due, Custody), Add Tool, Lock for Calibration, Scan Overdue Tools, Export Audit Report (CSV), Refresh |
 | Output 2 Technician workspace | equipment grid, Handover fields, Return and Inspection, Reservations, Check Out/Borrow, Check In/Return, Refresh Catalog |
@@ -62,7 +62,7 @@ Mac needs Xcode installed and opened once. If a build complains about a missing 
 - **Abstraction:** `CsvReport` is abstract; screens talk to `ServiceHub`, not to SQL.
 
 ## 5. Tests
-`../LogicTests` compiles the models and services against a small in-memory stand-in for SQLite and runs 81 scenario checks
+`../LogicTests` compiles the models and services against a small in-memory stand-in for SQLite and runs 91 scenario checks
 (every policy above, admin-only enforcement, reservations, ledger tamper detection, CSV safety). Run: `dotnet run --project LogicTests`.
 These tests do **not** cover the screens or real SQLite; try the click-through below for those.
 

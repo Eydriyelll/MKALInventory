@@ -15,7 +15,7 @@ public class CirculationService : ServiceBase
     // Checkout (Policies 1, 3, reservations)
     // ------------------------------------------------------------------
     public async Task<OpResult> BorrowAsync(User user, string itemId, string pin, string initials,
-        string signatureData, string returnWindow)
+        string signatureData, string returnWindow, DateTime? returnDate = null)
     {
         itemId = NormId(itemId);
         initials = (initials ?? string.Empty).Trim().ToUpperInvariant();
@@ -23,6 +23,15 @@ public class CirculationService : ServiceBase
         if (itemId.Length == 0) return OpResult.Fail("Enter the tool ID.");
         if (!SecurityHelper.IsValidPin(pin)) return OpResult.Fail("Enter your 4-digit PIN.");
         if (!SecurityHelper.IsValidInitials(initials)) return OpResult.Fail("Enter your sign-off initials (2 to 4 letters).");
+
+        // A calendar date is used when the technician chose "Pick a date on the calendar".
+        DateTime? customDue = null;
+        if (returnWindow == ReturnWindow.CustomDate)
+        {
+            var dateError = ReturnWindow.ValidateCustomDate(returnDate, DateTime.Now);
+            if (dateError != null) return OpResult.Fail(dateError);
+            customDue = ReturnWindow.DueForDate(returnDate!.Value);
+        }
 
         var db = await Database.GetAsync();
         var result = OpResult.Fail("Checkout could not be completed.");
@@ -68,7 +77,16 @@ public class CirculationService : ServiceBase
 
             // Reservations: never take a tool someone else has booked.
             var now = DateTime.Now;
-            var due = ReturnWindow.DueFor(returnWindow, now);
+            var due = customDue ?? ReturnWindow.DueFor(returnWindow, now);
+            var requestedDue = due;
+
+            // A tool must stay calibrated for the whole time it is out.
+            if (item.RequiresCalibration && due.Date > item.NextCalibrationDate.Date)
+            {
+                Audit(c, itemId, me, "Handover denied", "Calibration would expire before the return date.");
+                result = OpResult.Fail($"Calibration expires {item.NextCalibrationDate:dd MMM yyyy}, before the planned return on {due:dd MMM yyyy}. Choose an earlier return date, or ask the QTP to recalibrate it first.");
+                return;
+            }
             var active = c.Table<Reservation>().Where(r => r.ItemId == itemId && r.Status == ReservationStatus.Active).ToList();
             var others = active.Where(r => r.UserId != me.Id && r.ReserveDate.Date <= due.Date).OrderBy(r => r.ReserveDate).FirstOrDefault();
             if (others != null)
@@ -100,7 +118,8 @@ public class CirculationService : ServiceBase
                 BorrowDate = now, DueDate = due, SignatureInitials = initials, SignatureData = signatureData ?? string.Empty
             });
             Audit(c, item.ItemId, me, "Checked out", $"Issued to {me.FullName}. Initials {initials}. Due {due:dd MMM HH:mm}.");
-            result = OpResult.Success($"{item.Name} issued to you. Return it by {due:ddd dd MMM, HH:mm}.");
+            var shortened = due < requestedDue ? $" Your return date was moved earlier because {item.Name} is booked by someone else." : string.Empty;
+            result = OpResult.Success($"{item.Name} issued to you. Return it by {due:ddd dd MMM, HH:mm}.{shortened}");
         });
         return result;
     }
